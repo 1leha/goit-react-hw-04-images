@@ -1,4 +1,4 @@
-import React, { PureComponent } from 'react';
+import React, { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import PropTypes from 'prop-types';
 
@@ -6,14 +6,8 @@ import { OverlayStyled, ModalStyled } from './Modal.styled';
 
 const modalRoot = document.getElementById('modal-root');
 
-class Modal extends PureComponent {
-  static propTypes = {
-    children: PropTypes.node,
-  };
-
-  closeModal = e => {
-    const { toggleModal } = this.props;
-
+const Modal = ({ toggleModal, children }) => {
+  const closeModal = e => {
     if (toggleModal === undefined) {
       return;
     }
@@ -22,25 +16,24 @@ class Modal extends PureComponent {
       toggleModal();
     }
   };
+  useEffect(() => {
+    window.addEventListener('keydown', closeModal);
 
-  componentDidMount() {
-    window.addEventListener('keydown', this.closeModal);
-  }
+    return () => {
+      window.removeEventListener('keydown', closeModal);
+    };
+  }, []);
 
-  componentWillUnmount() {
-    window.removeEventListener('keydown', this.closeModal);
-  }
+  return createPortal(
+    <OverlayStyled onClick={closeModal}>
+      <ModalStyled>{children}</ModalStyled>
+    </OverlayStyled>,
+    modalRoot
+  );
+};
 
-  render() {
-    const { children } = this.props;
-
-    return createPortal(
-      <OverlayStyled onClick={this.closeModal}>
-        <ModalStyled>{children}</ModalStyled>
-      </OverlayStyled>,
-      modalRoot
-    );
-  }
-}
+Modal.propTypes = {
+  children: PropTypes.node,
+};
 
 export default Modal;
