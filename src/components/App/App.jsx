@@ -128,6 +128,15 @@ export const App = () => {
     scrollNextPage(firstImgUrlInFetch);
   }, [firstImgUrlInFetch]);
 
+  // Error Effect
+  useEffect(() => {
+    if (!error) {
+      return;
+    }
+
+    console.log('error :>> ', error);
+  }, [error]);
+
   return (
     <>
       <GlobalStyle />
