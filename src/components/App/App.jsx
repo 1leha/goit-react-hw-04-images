@@ -1,5 +1,5 @@
 // Libs
-import React, { PureComponent } from 'react';
+import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -26,31 +26,24 @@ import Button from '../Button';
 import GlobalStyle from '../GlobalStyle';
 import AppStyled from './App.styled';
 
-export class App extends PureComponent {
-  static propTypes = {
-    searchString: PropTypes.string,
+export const App = () => {
+  const [query, setQuery] = useState('');
+  const [page, setPage] = useState(1);
+  const [searchData, setSearchData] = useState([]);
+  const [firstImgUrlInFetch, setFirstImgUrlInFetch] = useState('');
+  const [status, setStatus] = useState(mashineStatus.IDLE);
+  const [error, setError] = useState('');
+  const [loadMoreBtnVisibility, setLoadMoreBtnVisibility] = useState(false);
+
+  const handleSerch = ({ query }) => {
+    setQuery(query);
   };
 
-  state = {
-    query: '',
-    page: 1,
-    searchData: [],
-    firstImgUrlInFetch: '',
-    status: mashineStatus.IDLE,
-    error: '',
-    loadMoreBtnVisibility: false,
-    modalIsOpen: false,
-  };
-
-  handleSerch = ({ query }) => {
-    this.setState({ query });
-  };
-
-  scrollNextPage = () => {
+  const scrollNextPage = firstImgUrlInFetch => {
     setTimeout(() => {
-      const { firstImgUrlInFetch } = this.state;
-      const url = firstImgUrlInFetch;
-      const firstImg = document.querySelector(`img[src="${url}"]`);
+      const firstImg = document.querySelector(
+        `img[src="${firstImgUrlInFetch}"]`
+      );
 
       window.scroll({
         behavior: 'smooth',
@@ -60,16 +53,14 @@ export class App extends PureComponent {
     }, GALLERY_SCROLL_TIMEOUT);
   };
 
-  nextPage = () => {
-    this.setState(prevState => ({ page: prevState.page + 1 }));
+  const nextPage = () => {
+    setPage(page => page + 1);
   };
 
-  getImages = async () => {
-    const { page, query } = this.state;
+  const getImages = async (query, page) => {
+    // const { page, query } = this.state;
 
-    this.setState({
-      status: mashineStatus.LOADING,
-    });
+    setStatus(mashineStatus.LOADING);
 
     try {
       const data = await fetchData(query, page);
@@ -79,10 +70,9 @@ export class App extends PureComponent {
       // NoImages found check
       if (!imagesInFetch) {
         toast.info(`No images found!`);
-        this.setState({
-          status: mashineStatus.SUCCESSFULLY,
-          loadMoreBtnVisibility: false,
-        });
+
+        setStatus(mashineStatus.SUCCESSFULLY);
+        setLoadMoreBtnVisibility(false);
         return;
       }
 
@@ -101,72 +91,70 @@ export class App extends PureComponent {
       // Making a Toast :)
       toast.info(`Total found: ${totalImages}. Images left: ${imagesLeft}.`);
 
-      this.setState(({ searchData }) => ({
-        searchData: [...searchData, ...hits],
-        firstImgUrlInFetch: url,
-        status: mashineStatus.SUCCESSFULLY,
-        loadMoreBtnVisibility: imagesInFetch >= imagesPerPage ? true : false,
-      }));
+      setSearchData(prevSearchData => [...prevSearchData, ...hits]);
+      setFirstImgUrlInFetch(url);
+      setStatus(mashineStatus.SUCCESSFULLY);
+      setLoadMoreBtnVisibility(imagesInFetch >= imagesPerPage ? true : false);
     } catch ({ code, message }) {
       toast.error(`${code}: ${message}`);
-      this.setState({
-        status: mashineStatus.SUCCESSFULLY,
-        error: `${code}: ${message}`,
-      });
+
+      setError(`${code}: ${message}`);
+      setStatus(mashineStatus.SUCCESSFULLY);
+      // console.log('error :>> ', error);
     }
   };
 
-  async componentDidUpdate(_, prevState) {
-    // Reset state when have new query and getting images
-    const { page, query: currentSearch } = this.state;
-    const prevSearch = prevState.query;
+  // New query Effect
+  useEffect(() => {
+    setSearchData([]);
+    setPage(1);
+  }, [query]);
 
-    if (prevSearch !== currentSearch) {
-      this.setState({
-        query: currentSearch,
-        page: 1,
-        searchData: [],
-      });
-
-      await this.getImages();
+  // Change query or page Effect
+  useEffect(() => {
+    if (!query) {
+      return;
     }
 
-    // Check state for changing page number
-    if (prevState.page !== page) {
-      await this.getImages();
+    getImages(query, page);
+  }, [query, page]);
 
-      // Scrolling next page func
-      this.scrollNextPage();
+  // Scroll next nage Effect
+  useEffect(() => {
+    if (!firstImgUrlInFetch) {
+      return;
     }
-  }
 
-  render() {
-    const { status, searchData, loadMoreBtnVisibility } = this.state;
+    scrollNextPage(firstImgUrlInFetch);
+  }, [firstImgUrlInFetch]);
 
-    return (
-      <>
-        <GlobalStyle />
-        <AppStyled>
-          <Searchbar onSubmit={this.handleSerch} />
+  return (
+    <>
+      <GlobalStyle />
+      <AppStyled>
+        <Searchbar onSubmit={handleSerch} />
 
-          <ImageGallery searchData={searchData} />
+        <ImageGallery searchData={searchData} />
 
-          {status === mashineStatus.IDLE && (
-            <IdleScreen>{message.IDLE}</IdleScreen>
-          )}
+        {status === mashineStatus.IDLE && (
+          <IdleScreen>{message.IDLE}</IdleScreen>
+        )}
 
-          {status === mashineStatus.LOADING && <Loader />}
+        {status === mashineStatus.LOADING && <Loader />}
 
-          {/* Place for render ERROR container if it need */}
-          {/* {status === mashineStatus.ERROR && <Modal>{error}</Modal>} */}
+        {/* Place for render ERROR container if it need */}
+        {/* {status === mashineStatus.ERROR && <Modal>{error}</Modal>} */}
 
-          {status === mashineStatus.SUCCESSFULLY && loadMoreBtnVisibility && (
-            <Button onClick={this.nextPage} />
-          )}
+        {status === mashineStatus.SUCCESSFULLY && loadMoreBtnVisibility && (
+          <Button onClick={nextPage} />
+        )}
 
-          <ToastContainer />
-        </AppStyled>
-      </>
-    );
-  }
-}
+        <ToastContainer />
+      </AppStyled>
+    </>
+  );
+};
+
+App.propTypes = {
+  searchString: PropTypes.string,
+};

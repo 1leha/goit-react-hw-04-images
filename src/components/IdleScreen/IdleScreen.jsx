@@ -16,7 +16,7 @@ const IdleScreen = ({ children }) => {
       color="lightgray"
       fontSize="l"
     >
-      <h1>Pixabay searching App</h1>
+      <h1>Pixabay searching hooked App </h1>
     </Box>
   );
 };
