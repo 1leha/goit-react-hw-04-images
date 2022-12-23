@@ -35,8 +35,14 @@ export const App = () => {
   const [error, setError] = useState('');
   const [loadMoreBtnVisibility, setLoadMoreBtnVisibility] = useState(false);
 
-  const handleSerch = ({ query }) => {
-    setQuery(query);
+  const handleSerch = ({ searchQuery }) => {
+    if (query !== searchQuery) {
+      console.log('Сброс');
+      setPage(1);
+      setSearchData([]);
+    }
+
+    setQuery(searchQuery);
   };
 
   const scrollNextPage = firstImgUrlInFetch => {
@@ -103,12 +109,6 @@ export const App = () => {
       // console.log('error :>> ', error);
     }
   };
-
-  // New query Effect
-  useEffect(() => {
-    setSearchData([]);
-    setPage(1);
-  }, [query]);
 
   // Change query or page Effect
   useEffect(() => {
